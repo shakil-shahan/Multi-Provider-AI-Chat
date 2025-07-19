@@ -2,6 +2,13 @@
 
 A practice project on how to use different Model's API
 
+# Demonstration
+
+<p align="center">
+  <img src="assets/chat-interface.png" alt="Chat Interface" width="400" style="margin-right: 10px;" />
+  <img src="assets/keys-interface.png" alt="Keys Interface" width="400" />
+</p>
+
 ## Prerequisites
 
 - **Python 3.8+**: Ensure Python is installed.
