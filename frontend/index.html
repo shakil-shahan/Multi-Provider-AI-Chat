@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Multi-Provider AI Chat</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .chat-container {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 900px;
+            height: 700px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: linear-gradient(90deg, #667eea, #764ba2);
+            color: white;
+            padding: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .header-title {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .header-title h1 {
+            font-size: 24px;
+            margin-bottom: 5px;
+        }
+
+        .header-title p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .provider-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .provider-select {
+            padding: 8px 12px;
+            border: none;
+            border-radius: 20px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 14px;
+            cursor: pointer;
+            min-width: 120px;
+        }
+
+        .provider-select option {
+            background: #333;
+            color: white;
+        }
+
+        .settings-button {
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: all 0.3s ease;
+        }
+
+        .settings-button:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .api-key-modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .api-key-modal.show {
+            display: flex;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 20px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .modal-header h2 {
+            color: #333;
+            font-size: 20px;
+        }
+
+        .close-button {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #666;
+        }
+
+        .api-key-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            border: 1px solid #e0e0e0;
+            border-radius: 10px;
+        }
+
+        .api-key-section h3 {
+            color: #333;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status-indicator {
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            background: #ff4444;
+        }
+
+        .status-indicator.saved {
+            background: #44ff44;
+        }
+
+        .api-input-group {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .api-key-input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+        }
+
+        .save-key-button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .save-key-button:hover {
+            background: #5a6fd8;
+        }
+
+        .clear-key-button {
+            background: #ff4444;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .clear-key-button:hover {
+            background: #dd3333;
+        }
+
+        .chat-messages {
+            flex: 1;
+            padding: 20px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+        }
+
+        .message {
+            max-width: 70%;
+            padding: 12px 16px;
+            border-radius: 18px;
+            word-wrap: break-word;
+            animation: fadeIn 0.3s ease-in;
+        }
+
+        .message.user {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            align-self: flex-end;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.ai {
+            background: #f1f3f4;
+            color: #333;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .message.loading {
+            background: #f1f3f4;
+            color: #666;
+            align-self: flex-start;
+            border-bottom-left-radius: 4px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .message-meta {
+            font-size: 12px;
+            opacity: 0.7;
+            margin-top: 5px;
+        }
+
+        .typing-indicator {
+            display: inline-flex;
+            gap: 4px;
+        }
+
+        .typing-indicator span {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #999;
+            animation: typing 1.4s infinite ease-in-out;
+        }
+
+        .typing-indicator span:nth-child(1) {
+            animation-delay: -0.32s;
+        }
+
+        .typing-indicator span:nth-child(2) {
+            animation-delay: -0.16s;
+        }
+
+        .chat-input-container {
+            padding: 20px;
+            background: #f8f9fa;
+            border-top: 1px solid #e0e0e0;
+        }
+
+        .chat-input-wrapper {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        .chat-input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            font-size: 16px;
+            outline: none;
+            transition: all 0.3s ease;
+        }
+
+        .chat-input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .send-button {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 48px;
+            height: 48px;
+            cursor: pointer;
+            font-size: 18px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .send-button:hover:not(:disabled) {
+            transform: scale(1.05);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .send-button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .error-message {
+            background: #ffebee;
+            color: #c62828;
+            border: 1px solid #ffcdd2;
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .warning-message {
+            background: #fff3e0;
+            color: #ef6c00;
+            border: 1px solid #ffcc02;
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 10px;
+            text-align: center;
+        }
+
+        .info-text {
+            font-size: 12px;
+            color: #666;
+            margin-top: 5px;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes typing {
+
+            0%,
+            80%,
+            100% {
+                transform: scale(0.8);
+                opacity: 0.5;
+            }
+
+            40% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        /* Mobile responsive */
+        @media (max-width: 768px) {
+            .chat-container {
+                height: 100vh;
+                border-radius: 0;
+            }
+
+            .chat-header {
+                flex-direction: column;
+                align-items: stretch;
+                gap: 10px;
+            }
+
+            .provider-controls {
+                justify-content: space-between;
+            }
+
+            .message {
+                max-width: 85%;
+            }
+
+            .modal-content {
+                margin: 20px;
+                width: auto;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <div class="header-title">
+                <h1>Multi-Provider AI Chat</h1>
+                <p id="current-model">Select a provider and configure API keys</p>
+            </div>
+            <div class="provider-controls">
+                <select id="provider-select" class="provider-select">
+                    <option value="">Select Provider</option>
+                    <option value="openai">OpenAI GPT</option>
+                    <option value="anthropic">Anthropic Claude</option>
+                    <option value="huggingface">Hugging Face</option>
+                    <option value="cohere">Cohere</option>
+                </select>
+                <button id="settings-button" class="settings-button">⚙️ API Keys</button>
+            </div>
+        </div>
+
+        <div id="chat-messages" class="chat-messages">
+            <div class="message ai">
+                <p>Hello! I'm your multi-provider AI assistant. Please:</p>
+                <p>1. Select an AI provider from the dropdown</p>
+                <p>2. Configure your API key using the ⚙️ button</p>
+                <p>3. Start chatting!</p>
+                <div class="message-meta">System</div>
+            </div>
+        </div>
+
+        <div class="chat-input-container">
+            <div id="error-container"></div>
+            <div class="chat-input-wrapper">
+                <input type="text" id="chat-input" class="chat-input" placeholder="Select a provider first..."
+                    maxlength="1000" disabled>
+                <button id="send-button" class="send-button" type="button" disabled>
+                    ➤
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- API Key Modal -->
+    <div id="api-key-modal" class="api-key-modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>Configure API Keys</h2>
+                <button class="close-button" id="close-modal">×</button>
+            </div>
+
+            <div class="api-key-section">
+                <h3>
+                    OpenAI GPT
+                    <span class="status-indicator" id="openai-status"></span>
+                </h3>
+                <div class="api-input-group">
+                    <input type="password" id="openai-key" class="api-key-input"
+                        placeholder="sk-...your-openai-api-key">
+                    <button class="save-key-button" onclick="saveApiKey('openai')">Save</button>
+                    <button class="clear-key-button" onclick="clearApiKey('openai')">Clear</button>
+                </div>
+                <div class="info-text">Get your key from: platform.openai.com/api-keys</div>
+            </div>
+
+            <div class="api-key-section">
+                <h3>
+                    Anthropic Claude
+                    <span class="status-indicator" id="anthropic-status"></span>
+                </h3>
+                <div class="api-input-group">
+                    <input type="password" id="anthropic-key" class="api-key-input"
+                        placeholder="sk-ant-...your-anthropic-key">
+                    <button class="save-key-button" onclick="saveApiKey('anthropic')">Save</button>
+                    <button class="clear-key-button" onclick="clearApiKey('anthropic')">Clear</button>
+                </div>
+                <div class="info-text">Get your key from: console.anthropic.com</div>
+            </div>
+
+            <div class="api-key-section">
+                <h3>
+                    Hugging Face
+                    <span class="status-indicator" id="huggingface-status"></span>
+                </h3>
+                <div class="api-input-group">
+                    <input type="password" id="huggingface-key" class="api-key-input"
+                        placeholder="hf_...your-huggingface-token">
+                    <button class="save-key-button" onclick="saveApiKey('huggingface')">Save</button>
+                    <button class="clear-key-button" onclick="clearApiKey('huggingface')">Clear</button>
+                </div>
+                <div class="info-text">Get your token from: huggingface.co/settings/tokens</div>
+            </div>
+
+            <div class="api-key-section">
+                <h3>
+                    Cohere
+                    <span class="status-indicator" id="cohere-status"></span>
+                </h3>
+                <div class="api-input-group">
+                    <input type="password" id="cohere-key" class="api-key-input" placeholder="your-cohere-api-key">
+                    <button class="save-key-button" onclick="saveApiKey('cohere')">Save</button>
+                    <button class="clear-key-button" onclick="clearApiKey('cohere')">Clear</button>
+                </div>
+                <div class="info-text">Get your key from: cohere.ai (Dashboard → API Keys)</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        class MultiProviderChatApp {
+            constructor() {
+                this.messagesContainer = document.getElementById('chat-messages');
+                this.chatInput = document.getElementById('chat-input');
+                this.sendButton = document.getElementById('send-button');
+                this.errorContainer = document.getElementById('error-container');
+                this.providerSelect = document.getElementById('provider-select');
+                this.settingsButton = document.getElementById('settings-button');
+                this.apiKeyModal = document.getElementById('api-key-modal');
+                this.closeModal = document.getElementById('close-modal');
+                this.currentModel = document.getElementById('current-model');
+
+                this.apiUrl = 'http://localhost:5000/chat';
+                this.isLoading = false;
+                this.currentProvider = '';
+
+                this.providers = {
+                    openai: 'OpenAI GPT-3.5',
+                    anthropic: 'Anthropic Claude',
+                    huggingface: 'Hugging Face DialoGPT',
+                    cohere: 'Cohere Command'
+                };
+
+                this.initializeEventListeners();
+                this.loadApiKeysStatus();
+                this.updateUI();
+            }
+
+            initializeEventListeners() {
+                this.sendButton.addEventListener('click', () => this.sendMessage());
+                this.chatInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter' && !e.shiftKey) {
+                        e.preventDefault();
+                        this.sendMessage();
+                    }
+                });
+
+                this.providerSelect.addEventListener('change', (e) => {
+                    this.currentProvider = e.target.value;
+                    this.updateUI();
+                });
+
+                this.settingsButton.addEventListener('click', () => {
+                    this.showApiKeyModal();
+                });
+
+                this.closeModal.addEventListener('click', () => {
+                    this.hideApiKeyModal();
+                });
+
+                this.apiKeyModal.addEventListener('click', (e) => {
+                    if (e.target === this.apiKeyModal) {
+                        this.hideApiKeyModal();
+                    }
+                });
+
+                this.chatInput.addEventListener('input', () => {
+                    this.clearError();
+                });
+            }
+
+            updateUI() {
+                const hasProvider = this.currentProvider !== '';
+                const hasApiKey = hasProvider && this.getApiKey(this.currentProvider);
+
+                this.chatInput.disabled = !hasProvider || !hasApiKey;
+                this.sendButton.disabled = !hasProvider || !hasApiKey;
+
+                if (hasProvider && hasApiKey) {
+                    this.chatInput.placeholder = `Chat with ${this.providers[this.currentProvider]}...`;
+                    this.currentModel.textContent = `Using: ${this.providers[this.currentProvider]}`;
+                    this.clearError();
+                } else if (hasProvider && !hasApiKey) {
+                    this.chatInput.placeholder = 'Configure API key first...';
+                    this.currentModel.textContent = `${this.providers[this.currentProvider]} - API key needed`;
+                    this.showError('Please configure your API key for the selected provider.');
+                } else {
+                    this.chatInput.placeholder = 'Select a provider first...';
+                    this.currentModel.textContent = 'Select a provider and configure API keys';
+                    this.clearError();
+                }
+            }
+
+            async sendMessage() {
+                const message = this.chatInput.value.trim();
+
+                if (!message || this.isLoading || !this.currentProvider) {
+                    return;
+                }
+
+                const apiKey = this.getApiKey(this.currentProvider);
+                if (!apiKey) {
+                    this.showError('Please configure your API key first.');
+                    return;
+                }
+
+                // Clear any previous errors
+                this.clearError();
+
+                // Add user message to chat
+                this.addMessage(message, 'user');
+                this.chatInput.value = '';
+
+                // Show loading state
+                this.setLoading(true);
+                const loadingMessageId = this.addLoadingMessage();
+
+                try {
+                    const response = await fetch(this.apiUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-API-Key': apiKey
+                        },
+                        body: JSON.stringify({
+                            message: message,
+                            provider: this.currentProvider
+                        })
+                    });
+
+                    const data = await response.json();
+
+                    // Remove loading message
+                    this.removeMessage(loadingMessageId);
+
+                    if (response.ok) {
+                        this.addMessage(data.response, 'ai', {
+                            provider: data.provider,
+                            model: data.model
+                        });
+                    } else {
+                        this.showError(`Error: ${data.error || 'Failed to get response'}`);
+                        this.addMessage('Sorry, I encountered an error. Please check your API key and try again.', 'ai');
+                    }
+                } catch (error) {
+                    console.error('Error:', error);
+                    this.removeMessage(loadingMessageId);
+                    this.showError('Connection error. Make sure the Python server is running on port 5000.');
+                    this.addMessage('Sorry, I cannot connect to the server. Please check your connection.', 'ai');
+                } finally {
+                    this.setLoading(false);
+                }
+            }
+
+            addMessage(text, type, meta = null) {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${type}`;
+
+                let metaText = '';
+                if (meta) {
+                    metaText = `<div class="message-meta">${meta.provider} • ${meta.model}</div>`;
+                } else if (type === 'user') {
+                    metaText = `<div class="message-meta">You</div>`;
+                }
+
+                messageDiv.innerHTML = `<p>${this.escapeHtml(text)}</p>${metaText}`;
+
+                this.messagesContainer.appendChild(messageDiv);
+                this.scrollToBottom();
+
+                return messageDiv;
+            }
+
+            addLoadingMessage() {
+                const messageDiv = document.createElement('div');
+                messageDiv.className = 'message loading';
+                messageDiv.innerHTML = `
+                    <div class="typing-indicator">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                    <div class="message-meta">${this.providers[this.currentProvider]} is thinking...</div>
+                `;
+
+                this.messagesContainer.appendChild(messageDiv);
+                this.scrollToBottom();
+
+                return messageDiv;
+            }
+
+            removeMessage(messageElement) {
+                if (messageElement && messageElement.parentNode) {
+                    messageElement.parentNode.removeChild(messageElement);
+                }
+            }
+
+            setLoading(isLoading) {
+                this.isLoading = isLoading;
+                this.sendButton.disabled = isLoading || !this.currentProvider || !this.getApiKey(this.currentProvider);
+                this.chatInput.disabled = isLoading || !this.currentProvider || !this.getApiKey(this.currentProvider);
+            }
+
+            showError(message) {
+                this.errorContainer.innerHTML = `
+                    <div class="error-message">
+                        ${this.escapeHtml(message)}
+                    </div>
+                `;
+            }
+
+            showWarning(message) {
+                this.errorContainer.innerHTML = `
+                    <div class="warning-message">
+                        ${this.escapeHtml(message)}
+                    </div>
+                `;
+            }
+
+            clearError() {
+                this.errorContainer.innerHTML = '';
+            }
+
+            showApiKeyModal() {
+                this.loadApiKeysToModal();
+                this.apiKeyModal.classList.add('show');
+            }
+
+            hideApiKeyModal() {
+                this.apiKeyModal.classList.remove('show');
+                this.updateUI();
+            }
+
+            loadApiKeysToModal() {
+                const providers = ['openai', 'anthropic', 'huggingface', 'cohere'];
+                providers.forEach(provider => {
+                    const input = document.getElementById(`${provider}-key`);
+                    const savedKey = this.getApiKey(provider);
+                    if (savedKey) {
+                        input.value = '••••••••••••••••';
+                        input.setAttribute('data-has-key', 'true');
+                    } else {
+                        input.value = '';
+                        input.removeAttribute('data-has-key');
+                    }
+                });
+                this.loadApiKeysStatus();
+            }
+
+            loadApiKeysStatus() {
+                const providers = ['openai', 'anthropic', 'huggingface', 'cohere'];
+                providers.forEach(provider => {
+                    const status = document.getElementById(`${provider}-status`);
+                    const hasKey = !!this.getApiKey(provider);
+                    if (hasKey) {
+                        status.classList.add('saved');
+                    } else {
+                        status.classList.remove('saved');
+                    }
+                });
+            }
+
+            getApiKey(provider) {
+                return localStorage.getItem(`apikey_${provider}`);
+            }
+
+            saveApiKey(provider) {
+                const input = document.getElementById(`${provider}-key`);
+                const key = input.value.trim();
+
+                if (key && key !== '••••••••••••••••') {
+                    localStorage.setItem(`apikey_${provider}`, key);
+                    input.value = '••••••••••••••••';
+                    input.setAttribute('data-has-key', 'true');
+                    this.loadApiKeysStatus();
+                    this.showSuccess(`${provider.toUpperCase()} API key saved successfully!`);
+                } else if (input.getAttribute('data-has-key') === 'true') {
+                    // Key already exists and user didn't change it
+                    this.showSuccess(`${provider.toUpperCase()} API key is already configured.`);
+                } else {
+                    alert('Please enter a valid API key.');
+                }
+            }
+
+            clearApiKey(provider) {
+                if (confirm(`Are you sure you want to remove the ${provider.toUpperCase()} API key?`)) {
+                    localStorage.removeItem(`apikey_${provider}`);
+                    const input = document.getElementById(`${provider}-key`);
+                    input.value = '';
+                    input.removeAttribute('data-has-key');
+                    this.loadApiKeysStatus();
+                    this.showSuccess(`${provider.toUpperCase()} API key removed.`);
+                }
+            }
+
+            showSuccess(message) {
+                // Create a temporary success message
+                const successDiv = document.createElement('div');
+                successDiv.style.cssText = `
+                    position: fixed;
+                    top: 20px;
+                    right: 20px;
+                    background: #4caf50;
+                    color: white;
+                    padding: 12px 20px;
+                    border-radius: 5px;
+                    z-index: 10000;
+                    animation: fadeIn 0.3s ease-in;
+                `;
+                successDiv.textContent = message;
+                document.body.appendChild(successDiv);
+
+                setTimeout(() => {
+                    successDiv.remove();
+                }, 3000);
+            }
+
+            scrollToBottom() {
+                this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
+            }
+
+            escapeHtml(text) {
+                const div = document.createElement('div');
+                div.textContent = text;
+                return div.innerHTML;
+            }
+        }
+
+        // Global functions for onclick events
+        function saveApiKey(provider) {
+            window.chatApp.saveApiKey(provider);
+        }
+
+        function clearApiKey(provider) {
+            window.chatApp.clearApiKey(provider);
+        }
+
+        // Initialize the chat application when the DOM is loaded
+        document.addEventListener('DOMContentLoaded', () => {
+            window.chatApp = new MultiProviderChatApp();
+        });
+    </script>
+</body>
+
+</html>
