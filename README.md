@@ -75,4 +75,4 @@ A practice project on how to use different Model's API
 
      - Access the app at `http://localhost:8080` in your browser.
 
-### Thanks for reading! Now try it out
+### Thanks for reading! Now try it out 😄
